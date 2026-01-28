@@ -372,13 +372,23 @@
         </div>
         
         <div class="info-section">
+            <div class="info-title">📥 Need the Excel Template?</div>
+            <p style="margin-bottom: 20px; opacity: 0.9; font-size: 1.1rem;">
+                Don't have the player data file? Download our template with instructions and examples!
+            </p>
+            <button class="download-btn" id="downloadTemplate" style="background: linear-gradient(135deg, #4ECCA3, #3498DB);">
+                ⬇️ Download Excel Template
+            </button>
+        </div>
+        
+        <div class="info-section" style="margin-top: 30px;">
             <div class="info-title">ℹ️ How It Works</div>
             <ul class="info-list">
-                <li>Upload your player Excel file (UBS_players.xlsx format)</li>
-                <li>AI analyzes player powers, troop types, and eligibility</li>
-                <li>Strategic assignments created based on priority & composition</li>
-                <li>Mobile-friendly infographics generated for easy sharing</li>
-                <li>Download all files and share with your teams!</li>
+                <li>Download the Excel template (or use your existing file)</li>
+                <li>Fill in player names, power levels, troop types, and eligibility</li>
+                <li>Upload the completed file here</li>
+                <li>AI analyzes and creates strategic assignments automatically</li>
+                <li>Download Excel + mobile infographics ready to share!</li>
             </ul>
         </div>
     </div>
@@ -770,6 +780,102 @@
                 parseInt(result[3], 16)
             ] : [0, 0, 0];
         }
+        
+        // Download Template
+        document.getElementById('downloadTemplate').addEventListener('click', () => {
+            // Create template workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Players sheet with instructions
+            const playersData = [
+                ['INSTRUCTIONS:'],
+                ['1. Fill in player names in column B (Player Name)'],
+                ['2. Fill in E1 troops in column D (Tank, Aero, or Missile)'],
+                ['3. Fill in E1 total power in column E (numeric value, e.g., 71.0)'],
+                ['4. Mark eligibility with "Y" in columns F, H (Team A, Team B)'],
+                ['5. Leave other columns empty or use as notes'],
+                [''],
+                ['Start entering your player data below (row 9 onwards):'],
+                ['', 'Player Name', 'Total Hero Power(M)', 'E1 troops', 'E1 total power(M)', 'Canon Battlefield - Team A', 'Canon Battlefield - Team A(SUB)', 'Canon Battlefield - Team B', 'Canon Battlefield - Team B(SUB)', 'Desert  Storm - Team A', 'Desert  Storm - Team A(SUB)', 'Desert  Storm -Team B', 'Desert  Storm -Team B(SUB)'],
+                [1, 'Example Player', '', 'Tank', 65.0, 'Y', '', '', '', '', '', '', ''],
+                [2, '', '', '', '', '', '', '', '', '', '', '', ''],
+            ];
+            const wsPlayers = XLSX.utils.aoa_to_sheet(playersData);
+            
+            // Set column widths
+            wsPlayers['!cols'] = [
+                {wch: 8}, {wch: 20}, {wch: 18}, {wch: 12}, {wch: 18},
+                {wch: 25}, {wch: 28}, {wch: 25}, {wch: 28}, {wch: 23},
+                {wch: 26}, {wch: 20}, {wch: 23}
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, wsPlayers, 'Players');
+            
+            // Team A sheet
+            const teamAData = [
+                ['TEAM A ASSIGNMENTS - This sheet will be AUTO-FILLED by the generator'],
+                ['Do not manually edit this sheet. Upload to the Canyon Storm Generator to auto-populate.'],
+                [''],
+                ['Buildig Name', 'Priority', 'Names', 'Description'],
+                ['East Serum Factory 2', 3, '', 'EAST serum Factory 2 (SOUTH until EAST open)'],
+                ['East Defense System 2', 3, '', 'EAST Defense system 2 (SOUTH until EAST open)'],
+                ['East Roaming', 5, '', 'EAST roaming (help SOUTH until EAST buidings open)'],
+                ['South Sample 1', 6, '', 'SOUTH Sample 1 (you can move in all south zone after first teleport)'],
+                ['South Sample 2', 6, '', 'SOUTH Sample 2 (you can move in all south zone after first teleport)'],
+                ['South Sample 3', 6, '', 'SOUTH Sample 3 (you can move in all south zone after first teleport)'],
+                ['South Sample 4', 6, '', 'SOUTH Sample 4 (you can move in all south zone after first teleport)'],
+                ['West Serum Factory 2', 3, '', 'WEST Serum Factory 1 ( NORTH until WEST open)'],
+                ['West Defense System 2', 3, '', 'WEST Defense system 1 ( NORTH until WEST open)'],
+                ['West Roaming ', 5, '', 'WEST Roaming (help  NORTH until WEST buildings open)'],
+                ['North Data Center 1', 4, '', 'NORTH Data Center 1'],
+                ['North Data Center 2', 4, '', 'NORTH Data Center 2'],
+                ['North Roaming', 5, '', 'NORTH Roaming (help NORTH players)'],
+                ['Middle Power Tower', 1, '', 'MIDDLE POWER TOWER'],
+                ['Middle Power Tower', 2, '', 'MIDDLE POWER TOWER'],
+                ['Middle Power Tower', 1, '', 'MIDDLE POWER TOWER'],
+                ['Middle Virus Lab', 1, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+                ['Middle Virus Lab', 1, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+                ['Middle Virus Lab', 2, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+                ['Middle Virus Lab', 2, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+            ];
+            const wsTeamA = XLSX.utils.aoa_to_sheet(teamAData);
+            wsTeamA['!cols'] = [{wch: 25}, {wch: 10}, {wch: 20}, {wch: 80}];
+            XLSX.utils.book_append_sheet(wb, wsTeamA, 'Canyon Battlefield - Team A');
+            
+            // Team B sheet (same structure)
+            const teamBData = [
+                ['TEAM B ASSIGNMENTS - This sheet will be AUTO-FILLED by the generator'],
+                ['Do not manually edit this sheet. Upload to the Canyon Storm Generator to auto-populate.'],
+                [''],
+                ['Buildig Name', 'Priority', 'Names', 'Description'],
+                ['East Serum Factory 2', 3, '', 'EAST serum Factory 2 (SOUTH until EAST open)'],
+                ['East Defense System 2', 3, '', 'EAST Defense system 2 (SOUTH until EAST open)'],
+                ['East Roaming', 5, '', 'EAST roaming (help SOUTH until EAST buidings open)'],
+                ['South Sample 1', 6, '', 'SOUTH Sample 1 (you can move in all south zone after first teleport)'],
+                ['South Sample 2', 6, '', 'SOUTH Sample 2 (you can move in all south zone after first teleport)'],
+                ['South Sample 3', 6, '', 'SOUTH Sample 3 (you can move in all south zone after first teleport)'],
+                ['South Sample 4', 6, '', 'SOUTH Sample 4 (you can move in all south zone after first teleport)'],
+                ['West Serum Factory 2', 3, '', 'WEST Serum Factory 1 ( NORTH until WEST open)'],
+                ['West Defense System 2', 3, '', 'WEST Defense system 1 ( NORTH until WEST open)'],
+                ['West Roaming', 5, '', 'WEST Roaming (help  NORTH until WEST buildings open)'],
+                ['North Data Center 1', 4, '', 'NORTH Data Center 1'],
+                ['North Data Center 2', 4, '', 'NORTH Data Center 2'],
+                ['North Roaming', 5, '', 'NORTH Roaming (help NORTH players)'],
+                ['Middle Power Tower', 1, '', 'MIDDLE POWER TOWER'],
+                ['Middle Power Tower', 2, '', 'MIDDLE POWER TOWER'],
+                ['Middle Power Tower', 1, '', 'MIDDLE POWER TOWER'],
+                ['Middle Virus Lab', 1, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+                ['Middle Virus Lab', 1, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+                ['Middle Virus Lab', 2, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+                ['Middle Virus Lab', 2, '', 'MIDDLE VIRUS LAB(until Virus Lab open, help where is needed if middle power tower is safe'],
+            ];
+            const wsTeamB = XLSX.utils.aoa_to_sheet(teamBData);
+            wsTeamB['!cols'] = [{wch: 25}, {wch: 10}, {wch: 20}, {wch: 80}];
+            XLSX.utils.book_append_sheet(wb, wsTeamB, 'Canyon Battlefield - Team B');
+            
+            // Download
+            XLSX.writeFile(wb, 'canyon_battlefield_template.xlsx');
+        });
     </script>
 </body>
 </html>
