@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canyon Storm Battlefield - Team Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #E74C3C;
+            --secondary: #3498DB;
+            --accent: #4ECCA3;
+            --dark: #0F3460;
+            --darker: #16213E;
+            --light: #FFFFFF;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(231, 76, 60, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(52, 152, 219, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 90%, rgba(78, 204, 163, 0.1) 0%, transparent 50%);
+            animation: pulse 10s ease-in-out infinite;
+            z-index: 0;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: slideDown 0.8s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 4px;
+        }
+        
+        /* Upload Section */
+        .upload-section {
+            background: var(--darker);
+            border-radius: 20px;
+            padding: 50px;
+            margin-bottom: 40px;
+            border: 2px solid rgba(78, 204, 163, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 1s ease-out 0.3s both;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .upload-area {
+            border: 3px dashed var(--accent);
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(78, 204, 163, 0.05);
+        }
+        
+        .upload-area:hover {
+            background: rgba(78, 204, 163, 0.1);
+            border-color: var(--light);
+            transform: scale(1.02);
+        }
+        
+        .upload-area.dragover {
+            background: rgba(78, 204, 163, 0.2);
+            border-color: var(--light);
+            transform: scale(1.05);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .upload-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+        
+        .upload-subtext {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Processing Section */
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(78, 204, 163, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .processing-text {
+            font-size: 1.3rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        /* Results Section */
+        .results {
+            display: none;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .result-card {
+            background: var(--darker);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(231, 76, 60, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            border-color: var(--primary);
+        }
+        
+        .result-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--light);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-family: 'Rajdhani', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.6);
+        }
+        
+        .download-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Info Section */
+        .info-section {
+            background: rgba(22, 33, 62, 0.6);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            border-left: 5px solid var(--accent);
+        }
+        
+        .info-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+        
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .info-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+        }
+        
+        .info-list li:before {
+            content: "⚡";
+            margin-right: 10px;
+            color: var(--accent);
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .upload-section {
+                padding: 30px 20px;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+            
+            .result-card {
+                padding: 20px;
+            }
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 2px solid var(--primary);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error-text {
+            color: var(--light);
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ Canyon Storm ⚔️</h1>
+            <p class="subtitle">Team Assignment Generator</p>
+        </header>
+        
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Upload Your Player Excel File</div>
+                <div class="upload-subtext">Click or drag & drop your UBS_players.xlsx file here</div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+            </div>
+            <div class="error" id="error">
+                <p class="error-text" id="errorText"></p>
+            </div>
+        </div>
+        
+        <div class="processing" id="processing">
+            <div class="spinner"></div>
+            <p class="processing-text">Processing assignments and generating infographics...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <div class="result-card">
+                <div class="result-title">📊 Team Assignments Excel</div>
+                <p style="margin-bottom: 20px; opacity: 0.8;">Complete player assignments for both Team A and Team B</p>
+                <button class="download-btn" id="downloadExcel">⬇️ Download Excel File</button>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-title">📱 Team A Mobile Infographic</div>
+                <p style="margin-bottom: 20px; opacity: 0.8;">Mobile-optimized visual guide for Team A players</p>
+                <button class="download-btn" id="downloadTeamA">⬇️ Download Team A Image</button>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-title">📱 Team B Mobile Infographic</div>
+                <p style="margin-bottom: 20px; opacity: 0.8;">Mobile-optimized visual guide for Team B players</p>
+                <button class="download-btn" id="downloadTeamB">⬇️ Download Team B Image</button>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-title">ℹ️ How It Works</div>
+            <ul class="info-list">
+                <li>Upload your player Excel file (UBS_players.xlsx format)</li>
+                <li>AI analyzes player powers, troop types, and eligibility</li>
+                <li>Strategic assignments created based on priority & composition</li>
+                <li>Mobile-friendly infographics generated for easy sharing</li>
+                <li>Download all files and share with your teams!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let workbook = null;
+        let teamAAssignments = [];
+        let teamBAssignments = [];
+        
+        // Zone colors
+        const zoneColors = {
+            'MIDDLE': '#E74C3C',
+            'NORTH': '#3498DB',
+            'EAST': '#F39C12',
+            'WEST': '#9B59B6',
+            'SOUTH': '#95A5A6'
+        };
+        
+        // Upload area handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processing = document.getElementById('processing');
+        const results = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+        const errorText = document.getElementById('errorText');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+        
+        function showError(message) {
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function handleFile(file) {
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                showError('Please upload an Excel file (.xlsx or .xls)');
+                return;
+            }
+            
+            processing.style.display = 'block';
+            errorDiv.style.display = 'none';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    processWorkbook();
+                } catch (error) {
+                    showError('Error reading Excel file: ' + error.message);
+                    processing.style.display = 'none';
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+        
+        function getZone(buildingName) {
+            const building = String(buildingName).toUpperCase();
+            if (building.includes('MIDDLE')) return 'MIDDLE';
+            if (building.includes('NORTH')) return 'NORTH';
+            if (building.includes('EAST')) return 'EAST';
+            if (building.includes('WEST')) return 'WEST';
+            if (building.includes('SOUTH')) return 'SOUTH';
+            return 'OTHER';
+        }
+        
+        function processWorkbook() {
+            try {
+                // Read sheets
+                const playersSheet = workbook.Sheets['Players'];
+                const teamASheet = workbook.Sheets['Canyon Battlefield - Team A'];
+                const teamBSheet = workbook.Sheets['Canyon Battlefield - Team B'];
+                
+                if (!playersSheet || !teamASheet || !teamBSheet) {
+                    showError('Excel file must contain "Players", "Canyon Battlefield - Team A", and "Canyon Battlefield - Team B" sheets');
+                    processing.style.display = 'none';
+                    return;
+                }
+                
+                // Convert to JSON
+                const players = XLSX.utils.sheet_to_json(playersSheet);
+                const teamABuildings = XLSX.utils.sheet_to_json(teamASheet);
+                const teamBBuildings = XLSX.utils.sheet_to_json(teamBSheet);
+                
+                // Process Team A
+                teamAAssignments = assignPlayers(players, teamABuildings, 'Canon Battlefield - Team A');
+                
+                // Process Team B
+                teamBAssignments = assignPlayers(players, teamBBuildings, 'Canon Battlefield - Team B');
+                
+                // Generate outputs
+                setTimeout(() => {
+                    processing.style.display = 'none';
+                    results.style.display = 'block';
+                }, 1500);
+                
+            } catch (error) {
+                showError('Error processing file: ' + error.message);
+                processing.style.display = 'none';
+            }
+        }
+        
+        function assignPlayers(players, buildings, teamColumn) {
+            // Filter eligible players
+            const eligible = players
+                .filter(p => p[teamColumn] === 'Y')
+                .map(p => ({
+                    name: p['Player Name'],
+                    power: p['E1 total power(M)'] || 0,
+                    troops: p['E1 troops'] || 'Unknown'
+                }))
+                .sort((a, b) => b.power - a.power);
+            
+            const assignments = [];
+            const available = [...eligible];
+            
+            // Group buildings by name and priority
+            const buildingGroups = {};
+            buildings.forEach(b => {
+                const key = `${b['Buildig Name']}_${b['Priority']}`;
+                if (!buildingGroups[key]) {
+                    buildingGroups[key] = [];
+                }
+                buildingGroups[key].push(b);
+            });
+            
+            // Sort by priority
+            const sorted = Object.entries(buildingGroups)
+                .sort((a, b) => {
+                    const prioA = a[1][0]['Priority'];
+                    const prioB = b[1][0]['Priority'];
+                    return prioA - prioB;
+                });
+            
+            // Assign players
+            sorted.forEach(([key, group]) => {
+                const building = group[0];
+                const count = group.length;
+                
+                // Select best players for this building
+                const selected = [];
+                
+                if (count > 1) {
+                    // Multi-position: try Tank first, then Aero/Missile
+                    const tanks = available.filter(p => p.troops === 'Tank');
+                    if (tanks.length > 0) {
+                        selected.push(tanks[0]);
+                        available.splice(available.indexOf(tanks[0]), 1);
+                    }
+                    
+                    const aeroMissile = available.filter(p => 
+                        p.troops === 'Aero' || p.troops === 'Missile');
+                    if (aeroMissile.length > 0 && selected.length < count) {
+                        selected.push(aeroMissile[0]);
+                        available.splice(available.indexOf(aeroMissile[0]), 1);
+                    }
+                    
+                    // Fill remaining with highest power
+                    while (selected.length < count && available.length > 0) {
+                        selected.push(available[0]);
+                        available.splice(0, 1);
+                    }
+                } else {
+                    // Single position: take highest power
+                    if (available.length > 0) {
+                        selected.push(available[0]);
+                        available.splice(0, 1);
+                    }
+                }
+                
+                // Create assignments
+                group.forEach((b, idx) => {
+                    const player = selected[idx];
+                    assignments.push({
+                        building: b['Buildig Name'],
+                        priority: b['Priority'],
+                        player: player ? player.name : '',
+                        power: player ? player.power : 0,
+                        troops: player ? player.troops : '',
+                        description: b['Description'] || '',
+                        zone: getZone(b['Buildig Name'])
+                    });
+                });
+            });
+            
+            return assignments;
+        }
+        
+        // Download Excel
+        document.getElementById('downloadExcel').addEventListener('click', () => {
+            const wb = XLSX.utils.book_new();
+            
+            // Team A sheet
+            const teamAData = teamAAssignments.map(a => ({
+                'Building Name': a.building,
+                'Priority': a.priority,
+                'Assigned Player': a.player,
+                'E1 Total Power(M)': a.power,
+                'E1 Troops': a.troops,
+                'Description': a.description
+            }));
+            const wsA = XLSX.utils.json_to_sheet(teamAData);
+            XLSX.utils.book_append_sheet(wb, wsA, 'Team A');
+            
+            // Team B sheet
+            const teamBData = teamBAssignments.map(a => ({
+                'Building Name': a.building,
+                'Priority': a.priority,
+                'Assigned Player': a.player,
+                'E1 Total Power(M)': a.power,
+                'E1 Troops': a.troops,
+                'Description': a.description
+            }));
+            const wsB = XLSX.utils.json_to_sheet(teamBData);
+            XLSX.utils.book_append_sheet(wb, wsB, 'Team B');
+            
+            XLSX.writeFile(wb, 'canyon_battlefield_assignments.xlsx');
+        });
+        
+        // Download Team A Image
+        document.getElementById('downloadTeamA').addEventListener('click', () => {
+            generateInfographic(teamAAssignments, 'TEAM A');
+        });
+        
+        // Download Team B Image
+        document.getElementById('downloadTeamB').addEventListener('click', () => {
+            generateInfographic(teamBAssignments, 'TEAM B');
+        });
+        
+        function generateInfographic(assignments, teamName) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Calculate height
+            const width = 1080;
+            let height = 120; // Title
+            
+            const zones = ['MIDDLE', 'NORTH', 'EAST', 'WEST', 'SOUTH'];
+            zones.forEach(zone => {
+                const zoneBuildings = assignments.filter(a => a.zone === zone);
+                if (zoneBuildings.length === 0) return;
+                
+                height += 55; // Zone header
+                
+                // Group by building
+                const grouped = {};
+                zoneBuildings.forEach(a => {
+                    if (!grouped[a.building]) grouped[a.building] = [];
+                    grouped[a.building].push(a);
+                });
+                
+                Object.values(grouped).forEach(group => {
+                    height += 110 + 8; // Card height + spacing
+                });
+                
+                height += 10; // Zone spacing
+            });
+            
+            height += 50; // Bottom padding
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Background
+            ctx.fillStyle = '#0F3460';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Title
+            ctx.fillStyle = '#16213E';
+            ctx.fillRect(0, 0, width, 100);
+            
+            ctx.font = 'bold 42px Arial';
+            ctx.fillStyle = '#4ECCA3';
+            ctx.textAlign = 'center';
+            ctx.fillText(teamName, width/2, 45);
+            
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText('CANYON STORM', width/2, 85);
+            
+            let yPos = 120;
+            
+            // Draw zones
+            zones.forEach(zone => {
+                const zoneBuildings = assignments.filter(a => a.zone === zone);
+                if (zoneBuildings.length === 0) return;
+                
+                const color = zoneColors[zone];
+                
+                // Zone header
+                ctx.fillStyle = color;
+                ctx.fillRect(20, yPos, width-40, 50);
+                
+                ctx.font = 'bold 28px Arial';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText(zone, width/2, yPos + 35);
+                
+                yPos += 55;
+                
+                // Group by building
+                const grouped = {};
+                zoneBuildings.forEach(a => {
+                    if (!grouped[a.building]) grouped[a.building] = [];
+                    grouped[a.building].push(a);
+                });
+                
+                Object.entries(grouped).forEach(([building, group]) => {
+                    // Card background
+                    const lighter = hexToRgb(color);
+                    ctx.fillStyle = `rgba(${lighter[0]+90}, ${lighter[1]+90}, ${lighter[2]+90}, 1)`;
+                    ctx.fillRect(30, yPos, width-60, 110);
+                    
+                    // Border
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(30, yPos, width-60, 110);
+                    
+                    // Left strip
+                    ctx.fillStyle = color;
+                    ctx.fillRect(30, yPos, 20, 110);
+                    
+                    // Building name
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.textAlign = 'left';
+                    const buildingText = building.length > 30 ? building.substring(0, 30) + '...' : building;
+                    ctx.fillText(buildingText, 65, yPos + 25);
+                    
+                    // Description
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = '#34495E';
+                    const desc = group[0].description;
+                    const descText = desc.length > 55 ? desc.substring(0, 55) + '...' : desc;
+                    ctx.fillText(descText, 65, yPos + 55);
+                    
+                    // Players
+                    ctx.font = 'bold 22px Arial';
+                    ctx.fillStyle = '#000000';
+                    const players = group.map(g => g.player).filter(p => p).join(', ');
+                    ctx.fillText('👤 ' + players, 65, yPos + 85);
+                    
+                    yPos += 110 + 8;
+                });
+                
+                yPos += 10;
+            });
+            
+            // Download
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${teamName.toLowerCase().replace(' ', '_')}_mobile.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16)
+            ] : [0, 0, 0];
+        }
+    </script>
+</body>
+</html>
