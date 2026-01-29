@@ -646,127 +646,165 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Calculate height
-            const width = 1080;
-            let height = 120; // Title
+            // Table-style dimensions
+            const width = 1400;
+            const rowHeight = 45;
+            const headerHeight = 60;
+            const titleHeight = 80;
+            const numRows = assignments.length;
             
-            const zones = ['MIDDLE', 'NORTH', 'EAST', 'WEST', 'SOUTH'];
-            zones.forEach(zone => {
-                const zoneBuildings = assignments.filter(a => a.zone === zone);
-                if (zoneBuildings.length === 0) return;
-                
-                height += 55; // Zone header
-                
-                // Group by building
-                const grouped = {};
-                zoneBuildings.forEach(a => {
-                    if (!grouped[a.building]) grouped[a.building] = [];
-                    grouped[a.building].push(a);
-                });
-                
-                Object.values(grouped).forEach(group => {
-                    height += 110 + 8; // Card height + spacing
-                });
-                
-                height += 10; // Zone spacing
-            });
-            
-            height += 50; // Bottom padding
+            const height = titleHeight + headerHeight + (numRows * rowHeight) + 50;
             
             canvas.width = width;
             canvas.height = height;
             
-            // Background
-            ctx.fillStyle = '#0F3460';
+            // Priority colors
+            const priorityColors = {
+                1: '#FFB6C1', 2: '#FFB6C1',
+                3: '#90EE90', 6: '#90EE90',
+                4: '#ADD8E6', 5: '#ADD8E6'
+            };
+            
+            // White background
+            ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, width, height);
             
             // Title
-            ctx.fillStyle = '#16213E';
-            ctx.fillRect(0, 0, width, 100);
-            
-            ctx.font = 'bold 42px Arial';
-            ctx.fillStyle = '#4ECCA3';
-            ctx.textAlign = 'center';
-            ctx.fillText(teamName, width/2, 45);
-            
-            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#2C3E50';
+            ctx.fillRect(0, 0, width, titleHeight);
+            ctx.font = 'bold 36px Arial';
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillText('CANYON STORM', width/2, 85);
+            ctx.textAlign = 'center';
+            ctx.fillText(`${teamName} - CANYON STORM ASSIGNMENTS`, width/2, titleHeight/2 + 12);
             
-            let yPos = 120;
+            let yPos = titleHeight;
             
-            // Draw zones
-            zones.forEach(zone => {
-                const zoneBuildings = assignments.filter(a => a.zone === zone);
-                if (zoneBuildings.length === 0) return;
+            // Column definitions
+            const columns = [
+                {name: 'Building Name', width: 200, align: 'left'},
+                {name: 'Priority', width: 80, align: 'center'},
+                {name: 'Names', width: 180, align: 'left'},
+                {name: 'Description', width: 940, align: 'left'}
+            ];
+            
+            // Header row
+            ctx.fillStyle = '#34495E';
+            ctx.fillRect(0, yPos, width, headerHeight);
+            
+            let xPos = 0;
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            
+            columns.forEach(col => {
+                // Vertical line
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(xPos, yPos);
+                ctx.lineTo(xPos, yPos + headerHeight);
+                ctx.stroke();
                 
-                const color = zoneColors[zone];
-                
-                // Zone header
-                ctx.fillStyle = color;
-                ctx.fillRect(20, yPos, width-40, 50);
-                
-                ctx.font = 'bold 28px Arial';
-                ctx.fillStyle = '#FFFFFF';
-                ctx.textAlign = 'center';
-                ctx.fillText(zone, width/2, yPos + 35);
-                
-                yPos += 55;
-                
-                // Group by building
-                const grouped = {};
-                zoneBuildings.forEach(a => {
-                    if (!grouped[a.building]) grouped[a.building] = [];
-                    grouped[a.building].push(a);
-                });
-                
-                Object.entries(grouped).forEach(([building, group]) => {
-                    // Card background
-                    const lighter = hexToRgb(color);
-                    ctx.fillStyle = `rgba(${lighter[0]+90}, ${lighter[1]+90}, ${lighter[2]+90}, 1)`;
-                    ctx.fillRect(30, yPos, width-60, 110);
-                    
-                    // Border
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(30, yPos, width-60, 110);
-                    
-                    // Left strip
-                    ctx.fillStyle = color;
-                    ctx.fillRect(30, yPos, 20, 110);
-                    
-                    // Building name
-                    ctx.font = 'bold 20px Arial';
-                    ctx.fillStyle = '#1a1a2e';
+                // Header text
+                if (col.align === 'center') {
+                    ctx.textAlign = 'center';
+                    ctx.fillText(col.name, xPos + col.width/2, yPos + headerHeight/2 + 5);
+                } else {
                     ctx.textAlign = 'left';
-                    const buildingText = building.length > 30 ? building.substring(0, 30) + '...' : building;
-                    ctx.fillText(buildingText, 65, yPos + 25);
+                    ctx.fillText(col.name, xPos + 10, yPos + headerHeight/2 + 5);
+                }
+                
+                xPos += col.width;
+            });
+            
+            // Right border of header
+            ctx.beginPath();
+            ctx.moveTo(width, yPos);
+            ctx.lineTo(width, yPos + headerHeight);
+            ctx.stroke();
+            
+            // Bottom border of header
+            ctx.beginPath();
+            ctx.moveTo(0, yPos + headerHeight);
+            ctx.lineTo(width, yPos + headerHeight);
+            ctx.stroke();
+            
+            yPos += headerHeight;
+            
+            // Data rows
+            ctx.font = '12px Arial';
+            ctx.lineWidth = 1;
+            
+            assignments.forEach((row, idx) => {
+                const priority = row.priority;
+                const bgColor = priorityColors[priority] || '#FFFFFF';
+                
+                // Row background
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, yPos, width, rowHeight);
+                
+                // Row data
+                const building = row.building || '';
+                const priorityStr = priority ? String(priority) : '';
+                const player = row.player || '';
+                const description = row.description || '';
+                
+                const rowData = [
+                    {text: building, width: columns[0].width, align: columns[0].align},
+                    {text: priorityStr, width: columns[1].width, align: columns[1].align},
+                    {text: player, width: columns[2].width, align: columns[2].align},
+                    {text: description.length > 120 ? description.substring(0, 117) + '...' : description, width: columns[3].width, align: columns[3].align}
+                ];
+                
+                xPos = 0;
+                ctx.fillStyle = '#000000';
+                
+                rowData.forEach(cell => {
+                    // Vertical line
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, yPos);
+                    ctx.lineTo(xPos, yPos + rowHeight);
+                    ctx.stroke();
                     
-                    // Description
-                    ctx.font = '16px Arial';
-                    ctx.fillStyle = '#34495E';
-                    const desc = group[0].description;
-                    const descText = desc.length > 55 ? desc.substring(0, 55) + '...' : desc;
-                    ctx.fillText(descText, 65, yPos + 55);
+                    // Cell text
+                    if (cell.align === 'center') {
+                        ctx.textAlign = 'center';
+                        ctx.fillText(cell.text, xPos + cell.width/2, yPos + rowHeight/2 + 4);
+                    } else {
+                        ctx.textAlign = 'left';
+                        ctx.fillText(cell.text, xPos + 10, yPos + rowHeight/2 + 4);
+                    }
                     
-                    // Players
-                    ctx.font = 'bold 22px Arial';
-                    ctx.fillStyle = '#000000';
-                    const players = group.map(g => g.player).filter(p => p).join(', ');
-                    ctx.fillText('👤 ' + players, 65, yPos + 85);
-                    
-                    yPos += 110 + 8;
+                    xPos += cell.width;
                 });
                 
-                yPos += 10;
+                // Right border
+                ctx.beginPath();
+                ctx.moveTo(width, yPos);
+                ctx.lineTo(width, yPos + rowHeight);
+                ctx.stroke();
+                
+                // Bottom border
+                ctx.beginPath();
+                ctx.moveTo(0, yPos + rowHeight);
+                ctx.lineTo(width, yPos + rowHeight);
+                ctx.stroke();
+                
+                yPos += rowHeight;
             });
+            
+            // Footer
+            yPos += 10;
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#7F8C8D';
+            ctx.textAlign = 'left';
+            ctx.fillText('Subs join at the same building of the main player leaving / Subs treten im selben Gebäude ein, in dem der Hauptspieler das Spiel verlässt', 20, yPos);
             
             // Download
             canvas.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${teamName.toLowerCase().replace(' ', '_')}_mobile.png`;
+                a.download = `${teamName.toLowerCase().replace(' ', '_')}_table.png`;
                 a.click();
                 URL.revokeObjectURL(url);
             });
