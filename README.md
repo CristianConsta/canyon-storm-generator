@@ -313,11 +313,11 @@ This is a standalone HTML tool. For customization:
 
 ## 📞 **Credits**
 
-Developed for competitive State of Survival Canyon Battlefield coordination.
+Developed for competitive Last War: Survival Canyon Battlefield coordination.
 
 **Built with:** HTML5, JavaScript, Canvas API, SheetJS
 
-**Designed for:** UBS Alliance and competitive SOS players worldwide
+**Designed for:** UBS Alliance and competitive Last War: Survival players worldwide
 
 ---
 
@@ -345,6 +345,6 @@ Developed for competitive State of Survival Canyon Battlefield coordination.
 
 ---
 
-**Made with ❤️ for competitive State of Survival players**
+**Made with ❤️ for competitive Last War: Survival players**
 
 *Last Updated: February 2026*
