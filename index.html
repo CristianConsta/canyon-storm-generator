@@ -492,16 +492,36 @@
                     return;
                 }
                 
-                // Convert to JSON
-                const players = XLSX.utils.sheet_to_json(playersSheet);
-                const teamABuildings = XLSX.utils.sheet_to_json(teamASheet);
-                const teamBBuildings = XLSX.utils.sheet_to_json(teamBSheet);
+                // Convert to JSON - skip first 9 rows, use row 10 as header
+                const players = XLSX.utils.sheet_to_json(playersSheet, {range: 9});
+                
+                // Building sheets - skip first 3 rows, use row 4 as header
+                const teamABuildings = XLSX.utils.sheet_to_json(teamASheet, {range: 3});
+                const teamBBuildings = XLSX.utils.sheet_to_json(teamBSheet, {range: 3});
+                
+                console.log('Players loaded:', players.length);
+                console.log('Sample player:', players[0]);
+                console.log('Columns:', Object.keys(players[0] || {}));
+                console.log('Team A buildings loaded:', teamABuildings.length);
+                console.log('Sample building:', teamABuildings[0]);
                 
                 // Process Team A
                 teamAAssignments = assignPlayers(players, teamABuildings, 'Canon Battlefield - Team A');
                 
                 // Process Team B
                 teamBAssignments = assignPlayers(players, teamBBuildings, 'Canon Battlefield - Team B');
+                
+                // Validate assignments
+                const countA = teamAAssignments.filter(a => a.player).length;
+                const countB = teamBAssignments.filter(a => a.player).length;
+                
+                if (countA === 0 && countB === 0) {
+                    showError('NO PLAYERS! Mark players with 1 in Canon Battlefield - Team A or Team B columns.');
+                    processing.style.display = 'none';
+                    return;
+                }
+                
+                console.log(`Team A: ${countA} players, Team B: ${countB} players`);
                 
                 // Generate outputs
                 setTimeout(() => {
@@ -516,9 +536,18 @@
         }
         
         function assignPlayers(players, buildings, teamColumn) {
-            // Filter eligible players
+            console.log(`Checking ${teamColumn} for selected players...`);
+            
+            // Filter eligible players - handle checkbox values: 1, true, 'Y', 'TRUE'
             const eligible = players
-                .filter(p => p[teamColumn] === 'Y')
+                .filter(p => {
+                    const val = p[teamColumn];
+                    const isSelected = val === 1 || val === true || val === 'Y' || val === 'TRUE' || val === 1.0;
+                    if (isSelected) {
+                        console.log(`  ✓ ${p['Player Name']}: ${val} (${typeof val})`);
+                    }
+                    return isSelected;
+                })
                 .map(p => ({
                     name: p['Player Name'],
                     power: p['E1 total power(M)'] || 0,
@@ -526,64 +555,130 @@
                 }))
                 .sort((a, b) => b.power - a.power);
             
-            const assignments = [];
-            const available = [...eligible];
+            console.log(`Found ${eligible.length} eligible players for ${teamColumn}`);
             
-            // Group buildings by name and priority
+            // Categorize players by troop type and sort by power
+            const playersByType = {
+                'Tank': eligible.filter(p => p.troops === 'Tank').sort((a, b) => b.power - a.power),
+                'Aero': eligible.filter(p => p.troops === 'Aero').sort((a, b) => b.power - a.power),
+                'Missile': eligible.filter(p => p.troops === 'Missile').sort((a, b) => b.power - a.power),
+                'Unknown': eligible.filter(p => !['Tank', 'Aero', 'Missile'].includes(p.troops)).sort((a, b) => b.power - a.power)
+            };
+            
+            console.log(`Players by type: Tank=${playersByType.Tank.length}, Aero=${playersByType.Aero.length}, Missile=${playersByType.Missile.length}`);
+            
+            // Group buildings by name and priority, but keep template order for final output
             const buildingGroups = {};
-            buildings.forEach(b => {
+            const groupOrder = []; // Track template order
+            
+            buildings.forEach((b, index) => {
                 const key = `${b['Buildig Name']}_${b['Priority']}`;
                 if (!buildingGroups[key]) {
                     buildingGroups[key] = [];
+                    groupOrder.push({key, index, priority: b['Priority']}); // Remember order AND priority
                 }
                 buildingGroups[key].push(b);
             });
             
-            // Sort by priority
-            const sorted = Object.entries(buildingGroups)
-                .sort((a, b) => {
-                    const prioA = a[1][0]['Priority'];
-                    const prioB = b[1][0]['Priority'];
-                    return prioA - prioB;
-                });
+            // Sort groups by PRIORITY for assignment (P1 first, then P2, etc.)
+            const sortedForAssignment = [...groupOrder].sort((a, b) => a.priority - b.priority);
             
-            // Assign players
-            sorted.forEach(([key, group]) => {
+            console.log('Assigning players by priority: P1 → P2 → P3 → P4 → P5 → P6');
+            
+            // Helper function to get next best player of specific type
+            function getPlayer(type) {
+                if (playersByType[type] && playersByType[type].length > 0) {
+                    return playersByType[type].shift();
+                }
+                return null;
+            }
+            
+            // Helper function to get next best player (any type)
+            function getAnyPlayer() {
+                // Try Tank, then Aero, then Missile, then Unknown
+                for (let type of ['Tank', 'Aero', 'Missile', 'Unknown']) {
+                    const player = getPlayer(type);
+                    if (player) return player;
+                }
+                return null;
+            }
+            
+            // Helper function to get complementary troop type for mixing
+            function getComplementaryPlayer(firstTroop) {
+                if (firstTroop === 'Tank') {
+                    // Tank pairs well with Aero or Missile
+                    return getPlayer('Aero') || getPlayer('Missile') || getAnyPlayer();
+                } else if (firstTroop === 'Aero') {
+                    // Aero pairs well with Tank or Missile
+                    return getPlayer('Tank') || getPlayer('Missile') || getAnyPlayer();
+                } else if (firstTroop === 'Missile') {
+                    // Missile pairs well with Tank or Aero
+                    return getPlayer('Tank') || getPlayer('Aero') || getAnyPlayer();
+                }
+                return getAnyPlayer();
+            }
+            
+            // Assign players to buildings by priority
+            const assignmentMap = {}; // Will store assignments by key
+            
+            sortedForAssignment.forEach(({key, priority}) => {
+                const group = buildingGroups[key];
                 const building = group[0];
                 const count = group.length;
+                const buildingName = building['Buildig Name'];
+                
+                console.log(`\nAssigning P${priority}: ${buildingName} (${count} slots)`);
                 
                 // Select best players for this building
                 const selected = [];
                 
-                if (count > 1) {
-                    // Multi-position: try Tank first, then Aero/Missile
-                    const tanks = available.filter(p => p.troops === 'Tank');
-                    if (tanks.length > 0) {
-                        selected.push(tanks[0]);
-                        available.splice(available.indexOf(tanks[0]), 1);
+                if (count === 1) {
+                    // Single position: take highest available power
+                    const player = getAnyPlayer();
+                    if (player) {
+                        selected.push(player);
+                        console.log(`  → ${player.name} (${player.power}M, ${player.troops})`);
                     }
-                    
-                    const aeroMissile = available.filter(p => 
-                        p.troops === 'Aero' || p.troops === 'Missile');
-                    if (aeroMissile.length > 0 && selected.length < count) {
-                        selected.push(aeroMissile[0]);
-                        available.splice(available.indexOf(aeroMissile[0]), 1);
-                    }
-                    
-                    // Fill remaining with highest power
-                    while (selected.length < count && available.length > 0) {
-                        selected.push(available[0]);
-                        available.splice(0, 1);
+                } else if (count === 2) {
+                    // Two positions: prioritize troop mixing
+                    const player1 = getAnyPlayer();
+                    if (player1) {
+                        selected.push(player1);
+                        console.log(`  → ${player1.name} (${player1.power}M, ${player1.troops})`);
+                        
+                        // Get complementary troop type
+                        const player2 = getComplementaryPlayer(player1.troops);
+                        if (player2) {
+                            selected.push(player2);
+                            const mixed = player1.troops !== player2.troops;
+                            console.log(`  → ${player2.name} (${player2.power}M, ${player2.troops})${mixed ? ' ✓ Mixed troops' : ''}`);
+                        }
                     }
                 } else {
-                    // Single position: take highest power
-                    if (available.length > 0) {
-                        selected.push(available[0]);
-                        available.splice(0, 1);
+                    // More than 2 positions: mix types and balance power
+                    while (selected.length < count) {
+                        const player = getAnyPlayer();
+                        if (!player) break;
+                        selected.push(player);
+                        console.log(`  → ${player.name} (${player.power}M, ${player.troops})`);
                     }
                 }
                 
-                // Create assignments
+                // Store assignments for this building
+                assignmentMap[key] = {group, selected};
+            });
+            
+            // Count total assigned
+            let totalAssigned = 0;
+            Object.values(assignmentMap).forEach(({selected}) => {
+                totalAssigned += selected.length;
+            });
+            
+            // Build final assignments array in TEMPLATE ORDER (not priority order)
+            const assignments = [];
+            groupOrder.forEach(({key}) => {
+                const {group, selected} = assignmentMap[key];
+                
                 group.forEach((b, idx) => {
                     const player = selected[idx];
                     assignments.push({
@@ -597,6 +692,12 @@
                     });
                 });
             });
+            
+            console.log(`\n✅ Assigned ${totalAssigned} players`);
+            console.log(`📊 Assignment strategy:`);
+            console.log(`   - P1/P2: Highest power players`);
+            console.log(`   - P3-P6: Balanced power with troop mixing`);
+            console.log(`📋 Output order: Template order (zone-based)`);
             
             return assignments;
         }
@@ -799,15 +900,14 @@
             ctx.textAlign = 'left';
             ctx.fillText('Subs join at the same building of the main player leaving / Subs treten im selben Gebäude ein, in dem der Hauptspieler das Spiel verlässt', 20, yPos);
             
-            // Download
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${teamName.toLowerCase().replace(' ', '_')}_table.png`;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
+            // Download using dataURL (more reliable than blob)
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = `${teamName.toLowerCase().replace(' ', '_')}_table.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
         
         function hexToRgb(hex) {
@@ -830,21 +930,21 @@
                 ['1. Fill in player names in column B (Player Name)'],
                 ['2. Fill in E1 troops in column D (Tank, Aero, or Missile)'],
                 ['3. Fill in E1 total power in column E (numeric value, e.g., 71.0)'],
-                ['4. Mark eligibility with "Y" in columns F, H (Team A, Team B)'],
-                ['5. Leave other columns empty or use as notes'],
+                ['4. Mark with 1 in column F (Team A) or column G (Team B) - 1 = selected, 0 = not selected'],
                 [''],
                 ['Start entering your player data below (row 9 onwards):'],
-                ['', 'Player Name', 'Total Hero Power(M)', 'E1 troops', 'E1 total power(M)', 'Canon Battlefield - Team A', 'Canon Battlefield - Team A(SUB)', 'Canon Battlefield - Team B', 'Canon Battlefield - Team B(SUB)', 'Desert  Storm - Team A', 'Desert  Storm - Team A(SUB)', 'Desert  Storm -Team B', 'Desert  Storm -Team B(SUB)'],
-                [1, 'Example Player', '', 'Tank', 65.0, 'Y', '', '', '', '', '', '', ''],
-                [2, '', '', '', '', '', '', '', '', '', '', '', ''],
+                ['Mark players with checkbox (1=checked) in column F (Team A) or G (Team B)'],
+                [''],
+                ['', 'Player Name', 'Total Hero Power(M)', 'E1 troops', 'E1 total power(M)', 'Canon Battlefield - Team A', 'Canon Battlefield - Team B'],
+                [1, 'Example Player', 95, 'Tank', 65, 1, 0],
+                [2, '', '', '', '', 0, 0],
             ];
             const wsPlayers = XLSX.utils.aoa_to_sheet(playersData);
             
-            // Set column widths
+            // Set column widths for new simplified structure
             wsPlayers['!cols'] = [
                 {wch: 8}, {wch: 20}, {wch: 18}, {wch: 12}, {wch: 18},
-                {wch: 25}, {wch: 28}, {wch: 25}, {wch: 28}, {wch: 23},
-                {wch: 26}, {wch: 20}, {wch: 23}
+                {wch: 28}, {wch: 28}
             ];
             
             XLSX.utils.book_append_sheet(wb, wsPlayers, 'Players');
